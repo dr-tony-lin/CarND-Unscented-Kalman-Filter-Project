@@ -7,8 +7,8 @@ add_definitions(-std=c++11)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/ukf.cpp src/main.cpp src/tools.cpp)
-
+set(sources src/main.cpp src/filter/utils.cpp src/filter/UKF.cpp)
+include_directories(libs)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
@@ -21,6 +21,6 @@ link_directories(/usr/local/Cellar/libuv/1.11.0/lib)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
 
-add_executable(UnscentedKF ${sources})
+add_executable(UKF ${sources})
 
-target_link_libraries(UnscentedKF z ssl uv uWS)
+target_link_libraries(UKF z ssl uv uWS)
