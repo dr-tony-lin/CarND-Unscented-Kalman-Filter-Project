@@ -265,7 +265,7 @@ void UKF::ComputeMeanOfSigmaPoints(VectorXd& x, MatrixXd& P,
   }
 
 #ifdef VERBOSE_OUT
-  std::cout << "Mean x: " << x << std::endl;
+  std::cout << "Mean x: " << x.transpose() << std::endl;
   std::cout << "Mean P: " << P << std::endl;
 #endif
 }
@@ -325,7 +325,11 @@ void UKF::PredictMeasurementFromSigmPoints(const bool radar) {
 
   // Compute state, and covariance matrix from the sigma points
   ComputeMeanOfSigmaPoints(z_pred, S, Zsig);
-  std::cout << "Mean: " << z_pred << Zsig << std::endl;
+
+#ifdef VERBOSE_OUT
+  std::cout << "Mean z_pred: " << z_pred.transpose() << std::endl;
+#endif
+
   if (radar) {
     S(0, 0) += std_radr * std_radr;
     S(1, 1) += std_radphi * std_radphi;

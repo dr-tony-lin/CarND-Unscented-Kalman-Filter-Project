@@ -113,6 +113,8 @@ bool EKF::ProcessMeasurement(
    *  Update
    ****************************************************************************/
   Update(meas_package);
+
+  return true;
 }
 
 void EKF::Predict(const double dt) {

@@ -154,14 +154,14 @@ The purpose of this class is to implement a more efficient RMSE mechanism that d
 Contains an implementation of the Extended Kalman Filter refactored from the Extended Kalman Filter project. This is here for comparison purpose.
 
 ## Result
-The RMSE performance of the Unscented Kalman filter is optimized when the acceleration deviation is at 0.5 and the yaw acceleration deviation is at 0.65. The following table show the RMSE after running dataset 1 followed by dataset 2:
+The RMSE performance of the Unscented Kalman filter is optimized when the acceleration deviation is at 0.5 and the yaw acceleration deviation is at 0.65. The following table shows the RMSE for running dataset 1 only, dataset 2 only, and dataset 1 followed by dataset 2:
 
-|            |   RMSE   |
-|:----------:|:--------:|
-| X    		 |   0.0642 |
-| Y          |   0.0736 |
-| Vx    	 |   0.333  |
-| Vy         |   0.298  |
+|            | Dataset 1| Dataset 2| Dataset 1, 2|
+|:----------:|:--------:|:--------:|:-----------:|
+| X    		 |   0.0640 |   0.0629 |    0.0634   |
+| Y          |   0.0858 |   0.0582 |    0.0733   |
+| Vx    	 |   0.2296 |   0.3004 |    0.2673   |
+| Vy         |   0.2973 |   0.2797 |    0.2886   |
 
 Refer to [this video](video1.mp4).
 
@@ -169,11 +169,12 @@ The following table shows how the RMSE performance of the Unscented Kalman filte
 
 |        |       0.05    |       0.5     |      0.65     |      1        |       2       |       4       | Std YawDD|
 |:------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:--------:|
-| 0.4    |               | 0.0639, 0.0745| 0.0634, 0.0747|               |               |               |          | 
-| 0.5    | 0.0648, 0.0735| 0.0642, 0.0736| 0.0639, 0.0742| 0.0642, 0.0759| 0.0648, 0.76  | 0.0648, 0.078 |          |
-| 0.6    | 0.0657, 0.0732| 0.0657, 0.0732|               |               |               |               |          |
-| 8      |               | 0.0813, 0.0864| 0.0820, 0.087 | 0.0827, 0.0894| 0.0837, 0.0931| 0.0838, 0.0931|          |
-| 16     |               | 0.0835, 0.0898| 0.084, 0.0905 | 0.0857, 0.0935| 0.0877, 0.0981| 0.0877, 0.0981|          |
+| 0.05   | 0.2147, 0.2222| 0.1069, 0.142 |  0.107, 0.1423| 0.1073, 0.1429| 0.1076, 0.1437| 0.1071, 0.1438|          | 
+| 0.4    | 0.2036, 0.1954| 0.0631, 0.0743| 0.0626, 0.0744| 0.0623, 0.0751| 0.0627, 0.0769| 0.0627, 0.0769|          | 
+| 0.5    | 0.2047, 0.1983| 0.0640, 0.0733| **0.0634, 0.0733**| 0.0631, 0.0739| 0.0634, 0.757 | 0.0640, 0.0778|          |
+| 0.6    | 0.2058, 0.2010|  0.065, 0.0729| 0.0643, 0.0729| 0.0640, 0.0735| 0.0642, 0.0752|  0.081, 0.0904|          |
+| 8      | 0.2215, 0.2316| 0.0811, 0.0865| 0.0808, 0.0862| 0.0814, 0.0872| 0.0821, 0.0893| 0.0832, 0.0929|          |
+| 16     | 0.2263, 0.2318| 0.0833, 0.0898|  0.083, 0.0896| 0.0834, 0.0903| 0.0851, 0.0933| 0.0872,  0.098|          |
 | Std A  |               |               |               |               |               |               |          |
 
 It shows that the best RMSE performance is ontained when the acceleration deviation is around 0.5, and the yaw acceleration deviation is around 0.65.
@@ -196,10 +197,10 @@ The Unscented Kalman filter out-performs the Extended Kalman filter. This is sho
 
 |            |   EKF    | %improve |
 |:----------:|:--------:|:--------:|
-| X    		 |   0.0822 |  +22%    |
-| Y          |   0.0854 |  +14%    |
-| Vx    	 |   0.4265 |  +22%    |
-| Vy         |   0.4316 |  +31%    |
+| X    		 |   0.0817 |  +22%    |
+| Y          |   0.0852 |  +14%    |
+| Vx    	 |   0.3773 |  +29%    |
+| Vy         |   0.4254 |  +32%    |
 
 #### Sensors and Performance
 The following table compares the RMSE (px, and py) against different combinations of sensors. The **UKF performs best with both lidar and radar sensors**. On the other hand, the Unscented Kalman filter performs poorly with only one sensor.

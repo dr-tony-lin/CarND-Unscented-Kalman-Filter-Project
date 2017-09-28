@@ -253,13 +253,12 @@ int main(int argc, char *argv[]) {
             VectorXd estimate = kalman->x();
 
             if (processed) { // Update RMSE
+              evaluator.Add(estimate.array(), gt_values.array());
 #ifdef VERBOSE_OUT
               std::cout << "UKF x = " << estimate.transpose() << std::endl;
               std::cout << "UKF P = " << kalman->P() << std::endl;
 #endif
             }
-            // update the RMSE evaluator
-            evaluator.Add(estimate.array(), gt_values.array());
 
             Eigen::ArrayXd RMSE;
             
