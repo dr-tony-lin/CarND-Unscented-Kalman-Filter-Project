@@ -19,7 +19,8 @@ This submission includes the following c++ files:
 * sensor/MeasurementPackage.h defines sensor measurement package structure
 
 ### Usage
-To start the program:
+The program has been tuned to run with the optimized parameters without any additional command line option.
+However, it can be launched as:
 
     ./kalman [-stda number] [-stdyawdd number] [-nolidar|-nolaser] [-noradar] [-nis filename] [-ekf]
 
