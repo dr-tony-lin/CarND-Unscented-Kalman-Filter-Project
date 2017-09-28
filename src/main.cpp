@@ -34,12 +34,25 @@ std::string hasData(std::string s) {
 static long long previous_timestamp = 0;
 
 // Flag for turning NIS generation of/off
-static bool generate_nis = true;
+static bool generate_nis = false;
 
-static ofstream nis;
+// nis output stream
+static ofstream nis_out;
+
+// Total number of NIS computed
+static int nis_count = 0;
+
+// NIS output frequency
+static const int nis_interval = 10;
+
+// Max and min of NIS value in output internal
+static float nis_max = -1000000, nis_min = 1000000;
+
+// NIS sum in interval
+static float nis_sum = 0;
 
 void exitHandler(void) {
-  if (nis.is_open()) nis.close();
+  if (nis_out.is_open()) nis_out.close();
 }
 
 int main(int argc, char *argv[]) {
@@ -47,41 +60,70 @@ int main(int argc, char *argv[]) {
 
   // Create a Kalman Filter instance
   UKF kalman;
+
+  // RMSE evaluator
   RMSEEvaluator<Eigen::ArrayXd> evaluator;
 
-  for (int i = 0; i < argc; i++) {
-    if (std::string((argv[i])) == "-nis") {
-      generate_nis = false;
-    } else if (std::string((argv[i])) == "-lidar") {
+  // NIS file name
+  std::string nis_file = "nis.csv";
+
+  // Flags for lidar and radar
+  bool lidar = true, radar = true;
+
+  // Standard deviation for acceleration and yaw change rate
+  double std_a = 0.5, std_yawd = 0.65;
+
+  // Process command line options
+  for (int i = 1; i < argc; i++) {
+    if (std::string((argv[i])) == "-nis") { // Set NIS file name
+      nis_file = std::string(argv[++i]);
+      generate_nis = true;
+    } else if (std::string((argv[i])) == "-nolidar") { // Turn off lidar
+      lidar = false;
       kalman.UseLidar(false);
-    } else if (std::string((argv[i])) == "-laser") {
+    } else if (std::string((argv[i])) == "-nolaser") { // Turn off lidar
+      lidar = false;
       kalman.UseLidar(false);
-    } else if (std::string((argv[i])) == "-radar") {
+    } else if (std::string((argv[i])) == "-noradar") { // Turn off radar
+      radar = false;
       kalman.UseRadar(false);
-    } else if (std::string((argv[i])) == "-stda") {
-      float value;
-      if (sscanf(argv[++i], "%f", &value) == 1) {
-        kalman.StdA(value);
-      }
-      else {
+    } else if (std::string((argv[i])) == "-stda") { // set std_a
+      if (sscanf(argv[++i], "%lf", &std_a) != 1) {
         std::cerr << "Invalid standard deviation for acceleration: " << argv[i] << std::endl;
+        exit(-1);
       }
-    } else if (std::string((argv[i])) == "-stdyawd") {
-      float value;
-      if (sscanf(argv[++i], "%f", &value) == 1) {
-        kalman.StdYawD(value);
-      }
-      else {
+    } else if (std::string((argv[i])) == "-stdyawd") { // set std_yawd
+      if (sscanf(argv[++i], "%lf", &std_yawd) != 1) {
         std::cerr << "Invalid standard deviation for yaw rate: " << argv[i] << std::endl;
+        exit(-1);
       }
+    } else {
+      std::cerr << "Unknown option: " << argv[i] << std::endl;
+      exit(-1);
     }
   }
+  if (!(lidar || radar)) { // Need one of the sensor to be enabled
+    std::cerr << "Both lidar and radar are disabled, exit now!" << std::endl;
+    exit(-1);
+  }
 
+  kalman.StdA(std_a);
+  kalman.StdYawD(std_yawd);
+
+  // Print out options
+  std::cout << "NIS: " << (generate_nis? ("On, file: " + nis_file): "Off") << std::endl;
+  std::cout << "Radar: " << (radar? "On": "Off") << std::endl;
+  std::cout << "Lidar: " << (lidar? "On": "Off") << std::endl;
+  std::cout << "Standard deviation - acceleration: " << std_a << std::endl;
+  std::cout << "Standard deviation - yaw rate: " << std_yawd << std::endl;
+
+  // Open NIS file
   if (generate_nis) {
-    nis.open(std::string("nis1.csv"), ios::out | ios::trunc);
+    nis_out.open(nis_file, ios::out | ios::trunc);
     atexit(exitHandler);
   }
 
+  // Handle requests
   h.onMessage([&kalman, &evaluator](
       uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
       uWS::OpCode opCode) {
@@ -175,8 +217,21 @@ int main(int argc, char *argv[]) {
             bool processed = kalman.ProcessMeasurement(meas_package);
 
             if (processed && generate_nis) {
-              nis << kalman.ComputeNIS() << std::endl;
-              nis.flush();
+              float nis_value = kalman.ComputeNIS();
+              nis_sum += nis_value;
+              if (nis_max < nis_value) {
+                nis_max = nis_value;
+              }
+              if (nis_min > nis_value) {
+                nis_min = nis_value;
+              }
+              if (++nis_count % nis_interval == 0) {
+                nis_out << nis_count << "," << nis_min << "," << nis_max << "," << (nis_sum / nis_interval) << std::endl;
+                nis_out.flush();
+                nis_max = -1000000;
+                nis_min = 1000000;
+                nis_sum = 0.0;
+              }
             }
 
             // Push the current Kalman filter's estimate to the RMSE evaluator

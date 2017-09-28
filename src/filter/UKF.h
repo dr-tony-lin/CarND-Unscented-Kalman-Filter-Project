@@ -80,7 +80,13 @@ class UKF : public KalmanFilter {
 
  protected:
   /**
-   * Compute mean and covariance matrix from the sigma points
+   * Compute mean and covariance matrix from the sigma points. Depending on the row counts of sigma,
+   * the method will do the followings:
+   * <UL>
+   * <LI>2: for laser, it will compute means of px, and py, and the covariance matrix of px, and py (2x2 matrix)
+   * <LI>3: for radar, it will compute means of radius, bearing angle, and speed, and their covariance matrix (3x3 matrix)
+   * <LI>5: for CTRV, it will compute means of CTRV, and its covariance matrix (5x5 matrix)
+   * </UL>
    * @param[out] x to store the computed mean
    * @param[out] P to store the computed covarance matrix
    * @param sigma the sigma points
@@ -89,21 +95,16 @@ class UKF : public KalmanFilter {
                                 const MatrixXd& sigma);
 
   /**
-   * Create sigma points from the current prediction state
+   * Create sigma points from the current CTRV state
    * @return the sigma point
    */
   MatrixXd CreateSigmaPoints();
 
   /**
-   * Run perdiction against the sigma points with the given delat time
+   * Run perdiction against the sigma points with the given delta time
    * @param dt delta time
    */
-  void PredictBySigmaPoints(const double dt);
-
-  /**
-   * Predict state and its covariance from the means of sigma points.
-   */
-  void PredictStateFromSigmPoints();
+  void PredictWithSigmaPoints(const double dt);
 
   /**
    * Predict measurement and its covariance from the means of sigma points.
@@ -161,7 +162,7 @@ class UKF : public KalmanFilter {
 
   /**
  * Predicts sigma points, the state, and the state covariance matrix.
- * @param {double} dt the change in time (in seconds) between the last
+ * @param dt the change in time (in seconds) between the last
  * measurement and this one.
  */
   void Predict(double dt);

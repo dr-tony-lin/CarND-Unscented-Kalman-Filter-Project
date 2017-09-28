@@ -32,10 +32,10 @@ UKF::UKF() {
   Xsig_aug = MatrixXd(n_aug, 2 * n_aug + 1);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a = 20;
+  std_a = 0.5;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd = 0.8;
+  std_yawdd = 0.65;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx = 0.15;
@@ -66,10 +66,6 @@ UKF::UKF() {
 
 UKF::~UKF() {}
 
-/**
- * @param {MeasurementPackage} meas_package The latest measurement data of
- * either radar or laser.
- */
 bool UKF::ProcessMeasurement(
     const MeasurementPackage<SensorType>& meas_package) {
   /*****************************************************************************
@@ -88,7 +84,7 @@ bool UKF::ProcessMeasurement(
     previous_timestamp = meas_package.timestamp();
     if (meas_package.sensor_type() == SensorType::RADAR) {
       // Convert radar from polar to cartesian coordinates and initialize state.
-      x() = RadarToCRTV(meas_package.measurements());
+      x() = RadarToCTRV(meas_package.measurements());
     } else if (meas_package.sensor_type() == SensorType::LASER) {
       // Initialize state from laser measurement
       VectorXd measurements = meas_package.measurements();
@@ -138,17 +134,13 @@ void UKF::Predict(double dt) {
 #ifdef VERBOSE_OUT
   std::cout << "Predict by sigma points ..." << std::endl;
 #endif
-  PredictBySigmaPoints(dt);
+PredictWithSigmaPoints(dt);
 #ifdef VERBOSE_OUT
   std::cout << "Computing means ..." << std::endl;
 #endif
   ComputeMeanOfSigmaPoints(x(), P(), Xsig_pred);
 }
 
-/**
- * Updates the state and the state covariance matrix using a radar measurement.
- * @param {MeasurementPackage} meas_package
- */
 void UKF::Update(const MeasurementPackage<SensorType>& meas_package) {
 #ifdef VERBOSE_OUT
   std::cout << "Updating ..." << std::endl;
@@ -184,6 +176,10 @@ void UKF::Update(const MeasurementPackage<SensorType>& meas_package) {
 
   // update state mean and covariance matrix
   z_diff = meas_package.measurements() - z_pred;
+  if (meas_package.sensor_type() == SensorType::RADAR) {
+    // Normalize the angle difference
+    z_diff(1) = NormalizeAngle(z_diff(1));
+  }
   x() += K * z_diff;
   P() -= K * S * K.transpose();
 
@@ -265,7 +261,7 @@ void UKF::ComputeMeanOfSigmaPoints(VectorXd& x, MatrixXd& P,
 #endif
 }
 
-void UKF::PredictBySigmaPoints(const double dt) {
+void UKF::PredictWithSigmaPoints(const double dt) {
   // predict sigma points
   // avoid division by zero
   // write predicted sigma points into right column

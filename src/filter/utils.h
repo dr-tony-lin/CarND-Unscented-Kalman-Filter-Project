@@ -29,10 +29,10 @@ const float PI_2 = 2 * M_PI;
 extern VectorXd RadarToPV(const VectorXd& data);
 
 /**
- * Helper function to convert radar measurement to CRTV
+ * Helper function to convert radar measurement to CTRV
  * @param data radar measurement
  */
-extern VectorXd RadarToCRTV(const  VectorXd& data);
+extern VectorXd RadarToCTRV(const  VectorXd& data);
 /**
  * Helper function to convert filter state to Radar state
  * @param pv the state vector
@@ -46,16 +46,16 @@ extern VectorXd PVToRadar(const VectorXd& pv);
 extern MatrixXd PVToRadar(const MatrixXd& pv);
 
 /**
- * Convert vectors of CRTV to radar measurement
- * @param crtv the crtv vectors
+ * Convert vectors of CTRV to radar measurement
+ * @param ctrv the CTRV vectors
  */
-extern VectorXd CRTVToRadar(const VectorXd& crtv);
+extern VectorXd CTRVToRadar(const VectorXd& ctrv);
 
 /**
  * Convert vectors of CRTV to radar measurement
- * @param crtv the matrix containing the crtv vectors
+ * @param ctrv the matrix containing the crtv vectors
  */
-extern MatrixXd CRTVToRadar(const MatrixXd& crtv);
+extern MatrixXd CTRVToRadar(const MatrixXd& ctrv);
 
 /**
  * Helper function to normalize an angle so it fall in the range of [PI, -PI)

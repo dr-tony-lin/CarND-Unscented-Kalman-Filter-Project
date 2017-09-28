@@ -32,13 +32,13 @@ class KalmanFilter {
   /**
    * Prediction Predicts the state and the state covariance
    * using the process model
-   * @param delta_T Time between k and k+1 in s
+   * @param dt Time between k and k+1 in s
    */
   virtual void Predict(const double dt) = 0;
 
   /**
    * Updates the state by using standard Kalman Filter equations
-   * @param z The measurement at k+1
+   * @param measurement_pack The measurement package
    */
   virtual void Update(
       const MeasurementPackage<SensorType> &measurement_pack) = 0;

@@ -14,7 +14,7 @@ VectorXd utils::RadarToPV(const VectorXd &radar) {
   return pv;
 }
 
-VectorXd utils::RadarToCRTV(const  VectorXd& radar) {
+VectorXd utils::RadarToCTRV(const  VectorXd& radar) {
   VectorXd pv(5);
   float c = cos(radar(1));
   float s = sin(radar(1));
@@ -58,24 +58,24 @@ MatrixXd utils::PVToRadar(const MatrixXd& pv) {
   return radar;
 }
 
-VectorXd utils::CRTVToRadar(const VectorXd& crtv) {
+VectorXd utils::CTRVToRadar(const VectorXd& ctrv) {
   VectorXd radar(3);
-  float r = sqrt(crtv(0) * crtv(0) + (crtv(1) * crtv(1)));
+  float r = sqrt(ctrv(0) * ctrv(0) + (ctrv(1) * ctrv(1)));
   if (r > EPSLION) {
-    float v = (crtv(0) * crtv(2) + crtv(1) * crtv(3)) / r;
-    radar << r, crtv(3), v;
+    float v = (ctrv(0) * ctrv(2) + ctrv(1) * ctrv(3)) / r;
+    radar << r, ctrv(3), v;
   }
   return radar;
 }
 
-MatrixXd utils::CRTVToRadar(const MatrixXd& crtv) {
-  MatrixXd radar(3, crtv.cols());
-  radar.row(0) = (crtv.row(0).array() * crtv.row(0).array() +
-                  crtv.row(1).array() * crtv.row(1).array()).sqrt();
-  radar.row(1) = crtv.row(3);
-  radar.row(2) = (crtv.row(0).array() * crtv.row(3).array().cos() +
-                  crtv.row(1).array() * crtv.row(3).array().sin()) *
-                 crtv.row(2).array() / radar.row(0).array();
+MatrixXd utils::CTRVToRadar(const MatrixXd& ctrv) {
+  MatrixXd radar(3, ctrv.cols());
+  radar.row(0) = (ctrv.row(0).array() * ctrv.row(0).array() +
+                  ctrv.row(1).array() * ctrv.row(1).array()).sqrt();
+  radar.row(1) = ctrv.row(3);
+  radar.row(2) = (ctrv.row(0).array() * ctrv.row(3).array().cos() +
+                  ctrv.row(1).array() * ctrv.row(3).array().sin()) *
+                 ctrv.row(2).array() / radar.row(0).array();
 
   return radar;
 }
