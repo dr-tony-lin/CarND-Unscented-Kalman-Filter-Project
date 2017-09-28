@@ -23,8 +23,11 @@ UKF::UKF() {
   // Augmented state dimension
   n_aug = 7;
 
-  // initial state vector
-  x() = VectorXd(n_x);
+  // initial ctrv state vector
+  ctrv = VectorXd(n_x);
+
+  // initial state vector px, py, vx, vy
+  x() = VectorXd(4);
 
   // initial covariance matrix
   P() = MatrixXd(n_x, n_x);
@@ -84,13 +87,15 @@ bool UKF::ProcessMeasurement(
     previous_timestamp = meas_package.timestamp();
     if (meas_package.sensor_type() == SensorType::RADAR) {
       // Convert radar from polar to cartesian coordinates and initialize state.
-      x() = RadarToCTRV(meas_package.measurements());
+      ctrv = RadarToCTRV(meas_package.measurements());
+      x() << ctrv(0), ctrv(1), ctrv(2) * cos(ctrv(3)), ctrv(2) * sin(ctrv(3));
     } else if (meas_package.sensor_type() == SensorType::LASER) {
       // Initialize state from laser measurement
       VectorXd measurements = meas_package.measurements();
       // px, py, v, psi, dpsi/dt
-      x() << measurements[0], measurements[1], 0,
+      ctrv << measurements[0], measurements[1], 0,
           atan2(measurements[1], measurements[0]), 0;
+      x() << ctrv(0), ctrv(1), 0, 0;
     }
 
     // Initialize P matrices
@@ -102,6 +107,7 @@ bool UKF::ProcessMeasurement(
 
 #ifdef VERBOSE_OUT
     std::cout << "Initial x: " << x() << std::endl;
+    std::cout << "Initial CTRV: " << ctrv << std::endl;
     std::cout << "Initial P: " << P() << std::endl;
 #endif
     // done initializing, no need to predict or update
@@ -138,7 +144,7 @@ PredictWithSigmaPoints(dt);
 #ifdef VERBOSE_OUT
   std::cout << "Computing means ..." << std::endl;
 #endif
-  ComputeMeanOfSigmaPoints(x(), P(), Xsig_pred);
+  ComputeMeanOfSigmaPoints(ctrv, P(), Xsig_pred);
 }
 
 void UKF::Update(const MeasurementPackage<SensorType>& meas_package) {
@@ -154,7 +160,7 @@ void UKF::Update(const MeasurementPackage<SensorType>& meas_package) {
   // calculate cross correlation matrix
   Tc.setZero();
   for (int i = 0; i < 2 * n_aug + 1; i++) {
-    VectorXd dx = Xsig_pred.col(i) - x();
+    VectorXd dx = Xsig_pred.col(i) - ctrv;
     VectorXd dz = Zsig.col(i) - z_pred;
     if (meas_package.sensor_type() == SensorType::RADAR) {
       // normalize bearing angle to [pi, -pi)
@@ -180,11 +186,14 @@ void UKF::Update(const MeasurementPackage<SensorType>& meas_package) {
     // Normalize the angle difference
     z_diff(1) = NormalizeAngle(z_diff(1));
   }
-  x() += K * z_diff;
+  ctrv += K * z_diff;
+  // normalize the bearing angle
+  ctrv(3) = NormalizeAngle(ctrv(3));
+  x() << ctrv(0), ctrv(1), ctrv(2) * cos(ctrv(3)), ctrv(2) * sin(ctrv(3));
   P() -= K * S * K.transpose();
 
 #ifdef VERBOSE_OUT
-  std::cout << "Updated state x: " << x() << std::endl;
+  std::cout << "Updated state x: " << ctrv << std::endl;
   std::cout << "Updated state covariance P: " << P() << std::endl;
 #endif
 }
@@ -197,7 +206,7 @@ MatrixXd UKF::CreateSigmaPoints() {
   MatrixXd P_aug = MatrixXd(n_aug, n_aug);
 
   // create augmented mean state
-  x_aug.block(0, 0, n_x, 1) = x();
+  x_aug.block(0, 0, n_x, 1) = ctrv;
   x_aug(n_x) = 0;
   x_aug(n_x + 1) = 0;
 
@@ -314,7 +323,7 @@ void UKF::PredictMeasurementFromSigmPoints(const bool radar) {
             << ": " << Zsig << std::endl;
 #endif
 
-  // Compute state, and covarance matrix from the sigma points
+  // Compute state, and covariance matrix from the sigma points
   ComputeMeanOfSigmaPoints(z_pred, S, Zsig);
   std::cout << "Mean: " << z_pred << Zsig << std::endl;
   if (radar) {

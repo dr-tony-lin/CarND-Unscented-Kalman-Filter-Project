@@ -12,6 +12,13 @@ class KalmanFilter {
 
   // state covariance matrix
   Eigen::MatrixXd P_;
+  
+ protected:
+  // if this is false, lidar measurements will be ignored (except for init)
+  bool use_lidar = true;
+
+  // if this is false, radar measurements will be ignored (except for init)
+  bool use_radar = true;
 
  public:
   /**
@@ -42,6 +49,28 @@ class KalmanFilter {
    */
   virtual void Update(
       const MeasurementPackage<SensorType> &measurement_pack) = 0;
+
+  /**
+   * Turn use lidar flag on or off
+   * @param value true to use lidar measurements
+   */
+  void UseLidar(bool value) { use_lidar = value; }
+
+  /**
+   * Get use lidar flag
+   */
+  bool UseLidar() { return use_lidar; }
+
+  /**
+   * Turn use radar flag on or off
+   * @param value true to use radar measurements
+   */
+  void UseRadar(bool value) { use_radar = value; }
+
+  /**
+   * Get use radar flag
+   */
+  bool UseRadar() { return use_radar; }
 
   /**
    * Get the state

@@ -12,18 +12,14 @@ using std::vector;
 
 class UKF : public KalmanFilter {
  private:
+  // CTRV state vector
+  Eigen::VectorXd ctrv;
 
   // check whether the filter has been initialized or not (first measurement)
   bool is_initialized;
 
   // Timestamp of the last measurement
   long long previous_timestamp;
-
-  // if this is false, lidar measurements will be ignored (except for init)
-  bool use_lidar = true;
-
-  // if this is false, radar measurements will be ignored (except for init)
-  bool use_radar = true;
 
   // predicted sigma points matrix
   MatrixXd Xsig_pred;
@@ -61,12 +57,14 @@ class UKF : public KalmanFilter {
   ///* Weights of sigma points
   VectorXd weights;
 
+  // Measurement prediction
   VectorXd z_pred;
-  
-  // Measurement and measurement prediction difference
+
+  // Store the current difference between measurement and measurement prediction
+  // for computing NIS
   VectorXd z_diff;
 
-  // The Measurement covariance matrix
+  // Stores the Measurement covariance matrix for computing NIS
   MatrixXd S;
 
   ///* State dimension
@@ -80,12 +78,16 @@ class UKF : public KalmanFilter {
 
  protected:
   /**
-   * Compute mean and covariance matrix from the sigma points. Depending on the row counts of sigma,
+   * Compute mean and covariance matrix from the sigma points. Depending on the
+   * row counts of sigma,
    * the method will do the followings:
    * <UL>
-   * <LI>2: for laser, it will compute means of px, and py, and the covariance matrix of px, and py (2x2 matrix)
-   * <LI>3: for radar, it will compute means of radius, bearing angle, and speed, and their covariance matrix (3x3 matrix)
-   * <LI>5: for CTRV, it will compute means of CTRV, and its covariance matrix (5x5 matrix)
+   * <LI>2: for laser, it will compute means of px, and py, and the covariance
+   * matrix of px, and py (2x2 matrix)
+   * <LI>3: for radar, it will compute means of radius, bearing angle, and
+   * speed, and their covariance matrix (3x3 matrix)
+   * <LI>5: for CTRV, it will compute means of CTRV, and its covariance matrix
+   * (5x5 matrix)
    * </UL>
    * @param[out] x to store the computed mean
    * @param[out] P to store the computed covarance matrix
@@ -129,28 +131,6 @@ class UKF : public KalmanFilter {
   void Reset() { is_initialized = false; }
 
   /**
-   * Turn use lidar flag on or off
-   * @param value true to use lidar measurements
-   */
-  void UseLidar(bool value) { use_lidar = value; }
-
-  /**
-   * Get use lidar flag
-   */
-  bool UseLidar() { return use_lidar; }
-
-  /**
-   * Turn use radar flag on or off
-   * @param value true to use radar measurements
-   */
-  void UseRadar(bool value) { use_radar = value; }
-
-  /**
-   * Get use radar flag
-   */
-  bool UseRadar() { return use_radar; }
-
-  /**
    * Run the Kalman Filter estimation on the given sensor
    * measurement.
    * @param measurement_pack the MeasurementPackage
@@ -181,14 +161,14 @@ class UKF : public KalmanFilter {
   /**
    * Set standard deviation for acceleration
    * @param value the value
-   */ 
-  void StdA(double value) { std_a = value;}
-  
+   */
+  void StdA(double value) { std_a = value; }
+
   /**
-   * Set standard deviation for yaw derivative
+   * Set standard deviation for yaw acceleration
    * @param value the value
-   */ 
-  void StdYawD(double value) { std_yawdd = value;}
+   */
+  void StdYawDD(double value) { std_yawdd = value; }
 };
 
 #endif /* UKF_H */

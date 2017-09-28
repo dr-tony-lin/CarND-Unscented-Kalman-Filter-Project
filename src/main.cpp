@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include "filter/UKF.h"
+#include "filter/EKF.h"
 #include "json.hpp"
 #include "filter/utils.h"
 #include "performance/RMSEEvaluator.h"
@@ -59,7 +60,9 @@ int main(int argc, char *argv[]) {
   uWS::Hub h;
 
   // Create a Kalman Filter instance
-  UKF kalman;
+  EKF ekf;
+  UKF ukf;
+  KalmanFilter *kalman;
 
   // RMSE evaluator
   RMSEEvaluator<Eigen::ArrayXd> evaluator;
@@ -68,32 +71,31 @@ int main(int argc, char *argv[]) {
   std::string nis_file = "nis.csv";
 
   // Flags for lidar and radar
-  bool lidar = true, radar = true;
+  bool lidar = true, radar = true, use_ukf = true;
 
   // Standard deviation for acceleration and yaw change rate
-  double std_a = 0.5, std_yawd = 0.65;
+  double std_a = 0.5, std_yawdd = 0.65;
 
   // Process command line options
   for (int i = 1; i < argc; i++) {
-    if (std::string((argv[i])) == "-nis") { // Set NIS file name
+    if (std::string((argv[i])) == "-ekf") { // use EKF instead of UKF
+      use_ukf = false;
+    } else if (std::string((argv[i])) == "-nis") { // Set NIS file name
       nis_file = std::string(argv[++i]);
       generate_nis = true;
     } else if (std::string((argv[i])) == "-nolidar") { // Turn off lidar
-      lidar = false;
-      kalman.UseLidar(false);
+      lidar = false;;
     } else if (std::string((argv[i])) == "-nolaser") { // Turn off lidar
       lidar = false;
-      kalman.UseLidar(false);
     } else if (std::string((argv[i])) == "-noradar") { // Turn off radar
       radar = false;
-      kalman.UseRadar(false);
     } else if (std::string((argv[i])) == "-stda") { // set std_a
       if (sscanf(argv[++i], "%lf", &std_a) != 1) {
         std::cerr << "Invalid standard deviation for acceleration: " << argv[i] << std::endl;
         exit(-1);
       }
-    } else if (std::string((argv[i])) == "-stdyawd") { // set std_yawd
-      if (sscanf(argv[++i], "%lf", &std_yawd) != 1) {
+    } else if (std::string((argv[i])) == "-stdyawdd") { // set std_yawdd
+      if (sscanf(argv[++i], "%lf", &std_yawdd) != 1) {
         std::cerr << "Invalid standard deviation for yaw rate: " << argv[i] << std::endl;
         exit(-1);
       }
@@ -107,15 +109,28 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  kalman.StdA(std_a);
-  kalman.StdYawD(std_yawd);
+  if (use_ukf) {
+    kalman = &ukf;
+    ukf.StdA(std_a);
+    ukf.StdYawDD(std_yawdd);
+  } else {
+    std::cout << "Use EKF, nis and yawdd options will be ignored." << std::endl;
+    kalman = &ekf;
+    ekf.StdA(std_a);
+    generate_nis = false;
+  }
 
+  kalman->UseLidar(lidar);
+  kalman->UseRadar(radar);
+  
   // Print out options
-  std::cout << "NIS: " << (generate_nis? ("On, file: " + nis_file): "Off") << std::endl;
   std::cout << "Radar: " << (radar? "On": "Off") << std::endl;
   std::cout << "Lidar: " << (lidar? "On": "Off") << std::endl;
   std::cout << "Standard deviation - acceleration: " << std_a << std::endl;
-  std::cout << "Standard deviation - yaw rate: " << std_yawd << std::endl;
+  if (use_ukf) {
+    std::cout << "NIS: " << (generate_nis? ("On, file: " + nis_file): "Off") << std::endl;
+    std::cout << "Standard deviation - yaw rate: " << std_yawdd << std::endl;
+  }
 
   // Open NIS file
   if (generate_nis) {
@@ -124,7 +139,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Handle requests
-  h.onMessage([&kalman, &evaluator](
+  h.onMessage([&kalman, &ukf, &evaluator](
       uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
       uWS::OpCode opCode) {
       // "42" at the start of the message means there's a websocket message
@@ -182,10 +197,10 @@ int main(int argc, char *argv[]) {
             // However, we will not reset the RMSE data so we could have more
             // samples for a
             // better RMSE
-            if (timestamp < previous_timestamp ||
-                timestamp - previous_timestamp > 1e8) {
+            if (previous_timestamp != 0 && (timestamp < previous_timestamp ||
+                timestamp - previous_timestamp > 1e8)) {
               cout << "Restarting ..." << endl;
-              kalman.Reset();
+              kalman->Reset();
             } else {
               cout << "Process: " << timestamp
                    << ": dt = " << (timestamp - previous_timestamp) / 1000000.0
@@ -214,10 +229,10 @@ int main(int argc, char *argv[]) {
             gt_values(3) = vy_gt;
 
             // Call ProcessMeasurment(meas_package) for Kalman filter
-            bool processed = kalman.ProcessMeasurement(meas_package);
+            bool processed = kalman->ProcessMeasurement(meas_package);
 
             if (processed && generate_nis) {
-              float nis_value = kalman.ComputeNIS();
+              float nis_value = ukf.ComputeNIS();
               nis_sum += nis_value;
               if (nis_max < nis_value) {
                 nis_max = nis_value;
@@ -235,29 +250,31 @@ int main(int argc, char *argv[]) {
             }
 
             // Push the current Kalman filter's estimate to the RMSE evaluator
-            VectorXd estimate = kalman.x();
+            VectorXd estimate = kalman->x();
 
-            double p_x = estimate(0);
-            double p_y = estimate(1);
-            double v1 = estimate(2) * cos(estimate(3));
-            double v2 = estimate(2) * sin(estimate(3));
-
-            VectorXd est(4);
-            est << p_x, p_y, v1, v2;
-
+            if (processed) { // Update RMSE
 #ifdef VERBOSE_OUT
-            std::cout << "UKF x = " << kalman.x().transpose() << std::endl;
-            std::cout << "UKF P = " << kalman.P() << std::endl;
-            std::cout << "Estimate = " << est << std::endl;
+              std::cout << "UKF x = " << estimate.transpose() << std::endl;
+              std::cout << "UKF P = " << kalman->P() << std::endl;
 #endif
-            evaluator.Add(est.array(), gt_values.array());
+            }
+            // update the RMSE evaluator
+            evaluator.Add(estimate.array(), gt_values.array());
 
-            Eigen::ArrayXd RMSE = evaluator.Evaluate();
-
+            Eigen::ArrayXd RMSE;
+            
+            try {
+              RMSE = evaluator.Evaluate();
+            }
+            catch(...) {
+              RMSE = Eigen::ArrayXd(4);
+              RMSE << 0, 0, 0, 0;
+            }
+            
             // Send RMSE back to the simulator
             json msgJson;
-            msgJson["estimate_x"] = p_x;
-            msgJson["estimate_y"] = p_y;
+            msgJson["estimate_x"] = estimate(0);
+            msgJson["estimate_y"] = estimate(1);
             msgJson["rmse_x"] = RMSE(0);
             msgJson["rmse_y"] = RMSE(1);
             msgJson["rmse_vx"] = RMSE(2);

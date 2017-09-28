@@ -13,6 +13,7 @@
  * - - : element-wisesubstraction
  * - * : element-wisemultiplication
  * - sqrt : element-wise squart root operations.
+ * - setZero: set all elements to 0
  *
  * On the other hand, if T does not provide the above operators, the following
  * operator functions should be supplied to the constructor: 
@@ -90,14 +91,20 @@ class RMSEEvaluator {
   }
 
   /**
-   * Evaluate the current data, and return the RMSE result
+   * Evaluate the current data, and return the RMSE result.
+   * An exception will be thrown when this method is called before any data has been added.
    */
   T Evaluate() {
-    if (mean_) {
-      return mean_(sum_, count_);
-    } else {
-      T mean = sum_ / count_;
-      return mean.sqrt();
+    if (count_) {
+      if (mean_) {
+        return mean_(sum_, count_);
+      } else {
+        T mean = sum_ / count_;
+        return mean.sqrt();
+      }
+    }
+    else { // We have no data yet!
+      throw "No data to evaluate!";
     }
   }
 };

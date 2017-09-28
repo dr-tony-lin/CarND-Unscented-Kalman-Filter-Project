@@ -10,7 +10,6 @@ using Eigen::VectorXd;
 // @file
 // @brief This file contains utility functions for EKF implementation
 //
-
 namespace utils {
 /**
  * The smallest number to be considered as 0
