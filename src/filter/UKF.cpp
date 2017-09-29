@@ -274,11 +274,11 @@ void UKF::PredictWithSigmaPoints(const double dt) {
   Xsig_pred = MatrixXd(n_x, 2 * n_aug + 1);
   for (int i = 0; i < 2 * n_aug + 1; i++) {
     VectorXd col = Xsig_aug.col(i);
+    double dt2 = dt * dt / 2.0;
+    double cos_psi = cos(col(3));
+    double sin_psi = sin(col(3));
     if (fabs(col(4)) < EPSLION) { // avoid division by zero
       double vkdt = col(2) * dt;
-      double dt2 = dt * dt / 2.0;
-      double cos_psi = cos(col(3));
-      double sin_psi = sin(col(3));
       Xsig_pred.col(i) << col(0) + vkdt * cos_psi + dt2 * cos_psi * col(5),
           col(1) + vkdt * sin_psi + dt2 * sin_psi * col(5),
           col(2) + dt * col(5), col(3) + dt2 * col(6), col(4) + dt * col(6);
@@ -286,9 +286,6 @@ void UKF::PredictWithSigmaPoints(const double dt) {
       double c1 = col(2) / col(4);
       double delta_psi = col(4) * dt;
       double npsi = col(3) + delta_psi;
-      double dt2 = dt * dt / 2.0;
-      double cos_psi = cos(col(3));
-      double sin_psi = sin(col(3));
       Xsig_pred.col(i) << col(0) + c1 * (sin(npsi) - sin_psi) +
                               dt2 * cos_psi * col(5),
           col(1) + c1 * (-cos(npsi) + cos_psi) + dt2 * sin_psi * col(5),
