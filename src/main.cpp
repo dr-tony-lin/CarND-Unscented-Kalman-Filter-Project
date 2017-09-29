@@ -98,7 +98,9 @@ int main(int argc, char *argv[]) {
       if (sscanf(argv[++i], "%lf", &std_yawdd) != 1) {
         std::cerr << "Invalid standard deviation for yaw rate: " << argv[i] << std::endl;
         exit(-1);
-      } else if (std_yawdd > utils::PI_2) {
+      }
+      // Make sure std yawdd is between 0 and 2PI
+      if (std_yawdd > utils::PI_2) {
         std_yawdd = utils::PI_2;
       } else if (std_yawdd < 0) {
         std_yawdd = 0;
