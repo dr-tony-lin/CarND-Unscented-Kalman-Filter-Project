@@ -10,6 +10,7 @@
 using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
+using Eigen::ArrayXd;
 using std::vector;
 using namespace utils;
 
@@ -284,14 +285,15 @@ void UKF::PredictWithSigmaPoints(const double dt) {
   double dt2 = dt * dt / 2.0;
 
   // Vectorize matrix/vector operations
-  VectorXd cos_psi = Xsig_aug.row(3).array().cos();
-  VectorXd sin_psi = Xsig_aug.row(3).array().sin();
-  VectorXd dt2_cos = cos_psi.array()*Xsig_aug.row(5).transpose().array()*dt2;
-  VectorXd dt2_sin = sin_psi.array()*Xsig_aug.row(5).transpose().array()*dt2;
-  VectorXd delta_psi = Xsig_aug.row(4) * dt;
-  VectorXd npsi = Xsig_aug.row(3) + delta_psi.transpose();
-  VectorXd npsi_cos = cos_psi.array() - npsi.array().cos();
-  VectorXd npsi_sin = npsi.array().sin() - sin_psi.array();
+  ArrayXd cos_psi = Xsig_aug.row(3).array().cos();
+  ArrayXd sin_psi = Xsig_aug.row(3).array().sin();
+  ArrayXd x5dt2 = Xsig_aug.row(5) * dt2; // will be 15x1!
+  ArrayXd dt2_cos = cos_psi * x5dt2;
+  ArrayXd dt2_sin = sin_psi * x5dt2;
+  ArrayXd delta_psi = Xsig_aug.row(4) * dt; // will be 15x1!
+  ArrayXd npsi = Xsig_aug.row(3).array() + delta_psi.transpose();
+  ArrayXd npsi_cos = cos_psi - npsi.cos();
+  ArrayXd npsi_sin = npsi.sin() - sin_psi;
 
   // Compute the perdiction for row 2, 3, and 4
   Xsig_pred.row(2) = Xsig_aug.row(2).array() + Xsig_aug.row(5).array()*dt;
@@ -310,7 +312,7 @@ void UKF::PredictWithSigmaPoints(const double dt) {
       double c1 = col(2) / col(4);
       Xsig_pred.col(i)(0) = col(0) + c1*npsi_sin(i) + dt2_cos(i);
       Xsig_pred.col(i)(1) = col(1) + c1*npsi_cos(i) + dt2_sin(i);
-      Xsig_pred.col(i)(3) += delta_psi(i); // add delta_psi to row 3
+      Xsig_pred.col(i)(3) += delta_psi(i); // adjust row 3
     }
   }
 
