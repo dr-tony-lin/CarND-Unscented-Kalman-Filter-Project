@@ -8,6 +8,7 @@ set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
 set(sources src/main.cpp src/filter/utils.cpp src/filter/UKF.cpp src/filter/EKF.cpp)
+set(sources2 src/catch_run_away_car.cpp src/filter/utils.cpp src/filter/UKF.cpp src/filter/EKF.cpp)
 include_directories(libs)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
@@ -22,5 +23,7 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 
 add_executable(kalman ${sources})
+add_executable(catch_run ${sources2})
 
 target_link_libraries(kalman z ssl uv uWS)
+target_link_libraries(catch_run z ssl uv uWS)
