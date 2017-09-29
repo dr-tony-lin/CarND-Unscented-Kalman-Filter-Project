@@ -9,7 +9,7 @@ cmake_minimum_required (VERSION 3.5)
 add_definitions(-std=c++11)
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU"))
-  add_compile_options(-g -mavx2 -msse4.1 -mfma4)
+  add_compile_options(-g -mavx -msse -mfma)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	add_compile_options(/arch:AVX2)
 endif()
