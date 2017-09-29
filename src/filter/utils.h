@@ -45,18 +45,6 @@ extern VectorXd PVToRadar(const VectorXd& pv);
 extern MatrixXd PVToRadar(const MatrixXd& pv);
 
 /**
- * Convert vectors of CTRV to radar measurement
- * @param ctrv the CTRV vectors
- */
-extern VectorXd CTRVToRadar(const VectorXd& ctrv);
-
-/**
- * Convert vectors of CRTV to radar measurement
- * @param ctrv the matrix containing the crtv vectors
- */
-extern MatrixXd CTRVToRadar(const MatrixXd& ctrv);
-
-/**
  * Helper function to normalize an angle so it fall in the range of [PI, -PI)
  * This is important for computing the angular difference for radar sensor data
  * Without the alignment, invalid state update might occur when crossing x or y

@@ -57,25 +57,3 @@ MatrixXd utils::PVToRadar(const MatrixXd& pv) {
 
   return radar;
 }
-
-VectorXd utils::CTRVToRadar(const VectorXd& ctrv) {
-  VectorXd radar(3);
-  float r = sqrt(ctrv(0) * ctrv(0) + (ctrv(1) * ctrv(1)));
-  if (r > EPSLION) {
-    float v = (ctrv(0) * ctrv(2) + ctrv(1) * ctrv(3)) / r;
-    radar << r, ctrv(3), v;
-  }
-  return radar;
-}
-
-MatrixXd utils::CTRVToRadar(const MatrixXd& ctrv) {
-  MatrixXd radar(3, ctrv.cols());
-  radar.row(0) = (ctrv.row(0).array() * ctrv.row(0).array() +
-                  ctrv.row(1).array() * ctrv.row(1).array()).sqrt();
-  radar.row(1) = ctrv.row(3);
-  radar.row(2) = (ctrv.row(0).array() * ctrv.row(3).array().cos() +
-                  ctrv.row(1).array() * ctrv.row(3).array().sin()) *
-                 ctrv.row(2).array() / radar.row(0).array();
-
-  return radar;
-}
