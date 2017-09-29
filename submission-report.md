@@ -297,3 +297,12 @@ The following table compares the X, and Y RMSE against different combinations of
 | Radar and Lidar | 0.0642, 0.0736            | 
 | Radar only      | 0.198, 0.233              |
 | Lidar only      | 0.351 0.357               |
+
+## Catch Run Away Car
+I made the catch run away car project to use the UKF implemented in this project. The program can be invoke with:
+
+```
+./catch_run
+```
+
+A video recorded during the catch is [here](./catch-run-away-car.mp4). As can be seen from the video, the cars are close enough, but could not get close enough.
