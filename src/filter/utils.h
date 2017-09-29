@@ -39,10 +39,10 @@ extern VectorXd RadarToCTRV(const  VectorXd& data);
 extern VectorXd PVToRadar(const VectorXd& pv);
 
 /**
- * Convert vectors of filter states to radar measurement
- * @param pv the matrix containing the vectors
+ * Convert vectors of CTRV states to radar measurements
+ * @param ctrv the matrix containing the ctrv vectors
  */
-extern MatrixXd PVToRadar(const MatrixXd& pv);
+extern MatrixXd CTRVToRadar(const MatrixXd& ctrv);
 
 /**
  * Helper function to normalize an angle so it fall in the range of [PI, -PI)

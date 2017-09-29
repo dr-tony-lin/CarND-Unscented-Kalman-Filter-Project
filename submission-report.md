@@ -160,10 +160,10 @@ The RMSE performance of the Unscented Kalman filter is optimized when the accele
 
 |            | Dataset 1| Dataset 2| Dataset 1, 2|
 |:----------:|:--------:|:--------:|:-----------:|
-| X    		 |   0.0640 |   0.0629 |    0.0634   |
+| X    		 |   0.0639 |   0.0629 |    0.0634   |
 | Y          |   0.0858 |   0.0582 |    0.0733   |
-| Vx    	 |   0.2296 |   0.3004 |    0.2673   |
-| Vy         |   0.2973 |   0.2797 |    0.2886   |
+| Vx    	 |   0.2288 |   0.3004 |    0.2670   |
+| Vy         |   0.2963 |   0.2797 |    0.2882   |
 
 The execution of the third scenario is recorded in [this video](video1.mp4).
 
@@ -198,7 +198,7 @@ The charts show when the noise level is reduced, NIS moves up and the variances 
 ### Comparison With Extended Kalman Filter
 My experiments shows that Unscented Kalman filters out-performs Extended Kalman filters. This can be seen from the following table:
 
-|            |   EKF    | %improve |
+|            |   EKF    | %improved|
 |:----------:|:--------:|:--------:|
 | X    		 |   0.0817 |  +22%    |
 | Y          |   0.0852 |  +14%    |

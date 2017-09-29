@@ -271,13 +271,10 @@ void UKF::ComputeMeanOfSigmaPoints(VectorXd& x, MatrixXd& P,
 }
 
 void UKF::PredictWithSigmaPoints(const double dt) {
-  // predict sigma points
-  // avoid division by zero
-  // write predicted sigma points into right column
   Xsig_pred = MatrixXd(n_x, 2 * n_aug + 1);
   for (int i = 0; i < 2 * n_aug + 1; i++) {
     VectorXd col = Xsig_aug.col(i);
-    if (col(4) == 0.0) {
+    if (fabs(col(4)) < EPSLION) { // avoid division by zero
       double vkdt = col(2) * dt;
       double dt2 = dt * dt / 2.0;
       double cos_psi = cos(col(3));
@@ -315,7 +312,7 @@ void UKF::PredictMeasurementFromSigmPoints(const bool radar) {
     z_pred = VectorXd(2);
   }
 
-  Zsig = radar ? PVToRadar(Xsig_pred) : 
+  Zsig = radar ? CTRVToRadar(Xsig_pred) : 
                  Xsig_pred.block(0, 0, 2, Xsig_pred.cols());
 
 #ifdef VERBOSE_OUT

@@ -1,4 +1,5 @@
 #include <math.h>
+#include <chrono>
 #include <uWS/uWS.h>
 #include <Eigen/Dense>
 #include <fstream>
@@ -12,6 +13,7 @@
 #include "sensor/SensorType.h"
 
 using namespace std;
+using namespace std::chrono;
 
 // for convenience
 using json = nlohmann::json;
@@ -33,6 +35,13 @@ std::string hasData(std::string s) {
 
 // Timestamp of the previous measurement
 static long long previous_timestamp = 0;
+
+// Variables used for computing time spent on
+// radar and lidar estimations
+static long long laser_time = 0;
+static float laser_counts = 0;
+static long long radar_time = 0;
+static float radar_counts = 0;
 
 // Flag for turning NIS generation of/off
 static bool generate_nis = false;
@@ -235,7 +244,18 @@ int main(int argc, char *argv[]) {
             gt_values(3) = vy_gt;
 
             // Call ProcessMeasurment(meas_package) for Kalman filter
+            high_resolution_clock::time_point stime = high_resolution_clock::now();
             bool processed = kalman->ProcessMeasurement(meas_package);
+            // Get timing
+            nanoseconds elapsed = duration_cast<nanoseconds> (high_resolution_clock::now() - stime);
+            if (type == SensorType::RADAR) {
+              radar_time += elapsed.count();
+              radar_counts++;
+            }
+            else {
+              laser_time += elapsed.count();
+              laser_counts++;
+            }
 
             if (processed && generate_nis) {
               float nis_value = ukf.ComputeNIS();
@@ -288,6 +308,15 @@ int main(int argc, char *argv[]) {
             // std::cout << msg << std::endl;
             ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
             std::cout << "RMSE: " << RMSE.transpose() << std::endl;
+            // Output average estimate time
+            if (laser_counts && radar_counts) {
+              std::cout << "Radar time: " << radar_time / (radar_counts * 1000000) << "ms";
+              std::cout << ", Laser time: " << laser_time / (laser_counts * 1000000) << "ms" << std::endl;
+            } else if (radar_counts) {
+              std::cout << "Radar time: " << radar_time / (radar_counts * 1000000) << "ms" << std::endl;
+            } else if (laser_counts) {
+              std::cout << "Laser time: " << laser_time / (laser_counts * 1000000) << "ms" << std::endl;
+            }
           }
         } else {
           std::string msg = "42[\"manual\",{}]";
