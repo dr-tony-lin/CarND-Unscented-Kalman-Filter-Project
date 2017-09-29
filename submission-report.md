@@ -147,6 +147,90 @@ Then, the state covariance matrix is updated using the Kalman gain matrix and th
 ### Angular correction for radar estimates
 For correct estimate of angular movements, angles, and angular differences between predictions and measurements needs to be normalized to [ &#960;, -&#960; ). This is also applied to the &#968; element of the CRTV vector.
 
+### Vectorization
+Could the speed of the filter be improved by vectorization? To answer this question, I have created a git branch, vectorization, that contains a more vectorized version of the filter.
+For example, the original code, and the vectorized version are as follows:
+
+**The original code:**
+```
+void UKF::PredictWithSigmaPoints(const double dt) {
+  Xsig_pred = MatrixXd(n_x, 2 * n_aug + 1);
+  for (int i = 0; i < 2 * n_aug + 1; i++) {
+    VectorXd col = Xsig_aug.col(i);
+    if (fabs(col(4)) < EPSLION) { // avoid division by zero
+      double vkdt = col(2) * dt;
+      double dt2 = dt * dt / 2.0;
+      double cos_psi = cos(col(3));
+      double sin_psi = sin(col(3));
+      Xsig_pred.col(i) << col(0) + vkdt * cos_psi + dt2 * cos_psi * col(5),
+          col(1) + vkdt * sin_psi + dt2 * sin_psi * col(5),
+          col(2) + dt * col(5), col(3) + dt2 * col(6), col(4) + dt * col(6);
+    } else {
+      double c1 = col(2) / col(4);
+      double delta_psi = col(4) * dt;
+      double npsi = col(3) + delta_psi;
+      double dt2 = dt * dt / 2.0;
+      double cos_psi = cos(col(3));
+      double sin_psi = sin(col(3));
+      Xsig_pred.col(i) << col(0) + c1 * (sin(npsi) - sin_psi) +
+                              dt2 * cos_psi * col(5),
+          col(1) + c1 * (-cos(npsi) + cos_psi) + dt2 * sin_psi * col(5),
+          col(2) + dt * col(5), col(3) + delta_psi + dt2 * col(6),
+          col(4) + dt * col(6);
+    }
+  }
+}
+```
+
+**The vectorized version**
+```
+void UKF::PredictWithSigmaPoints(const double dt) {
+  Xsig_pred = MatrixXd(n_x, 2 * n_aug + 1);
+  double dt2 = dt * dt / 2.0;
+
+  // Vectorize matrix/vector operations
+  ArrayXd cos_psi = Xsig_aug.row(3).array().cos();
+  ArrayXd sin_psi = Xsig_aug.row(3).array().sin();
+  ArrayXd x5dt2 = Xsig_aug.row(5) * dt2; // will be 15x1!
+  ArrayXd dt2_cos = cos_psi * x5dt2;
+  ArrayXd dt2_sin = sin_psi * x5dt2;
+  ArrayXd delta_psi = Xsig_aug.row(4) * dt; // will be 15x1!
+  ArrayXd npsi = Xsig_aug.row(3).array() + delta_psi.transpose();
+  ArrayXd npsi_cos = cos_psi - npsi.cos();
+  ArrayXd npsi_sin = npsi.sin() - sin_psi;
+
+  // Compute the perdiction for row 2, 3, and 4
+  Xsig_pred.row(2) = Xsig_aug.row(2).array() + Xsig_aug.row(5).array()*dt;
+  Xsig_pred.row(3) = Xsig_aug.row(3).array() + Xsig_aug.row(6).array()*dt2;
+  Xsig_pred.row(4) = Xsig_aug.row(4).array() + Xsig_aug.row(6).array()*dt;
+
+  // Compute the prediction of row 0, and 1
+  for (int i = 0; i < 2 * n_aug + 1; i++) {
+    VectorXd col = Xsig_aug.col(i);
+    VectorXd pred = Xsig_pred.col(i);
+    if (fabs(col(4)) < EPSLION) { // Avoid divide by 0
+      double vkdt = col(2) * dt;
+      Xsig_pred.col(i)(0) = col(0) + vkdt*cos_psi(i) + dt2_cos(i);
+      Xsig_pred.col(i)(1) = col(1) + vkdt*sin_psi(i) + dt2_sin(i);
+    } else { 
+      double c1 = col(2) / col(4);
+      Xsig_pred.col(i)(0) = col(0) + c1*npsi_sin(i) + dt2_cos(i);
+      Xsig_pred.col(i)(1) = col(1) + c1*npsi_cos(i) + dt2_sin(i);
+      Xsig_pred.col(i)(3) += delta_psi(i); // adjust row 3
+    }
+  }
+}
+```
+
+To build the vectorized version, the cmake file is modified to have build with -mavx -msse -mfma flags.
+
+Unfortunately, the result of vectorization did not improve the performance, it actually caused 8-10% of performance drop! This has been observed with Bash on Windows (g++), and Mac (AppleClang).
+
+It is still unclear to me why vectorization does not improve the performance. The possible reasons could include:
+
+1. The data is not large enough to take the advantage of vectorization.
+2. Extra data preparation required for the vectorization might have degraded the performance.
+
 ## RMSEEvaluator class
 The RMSE evaluation implemented in the starter code is not efficient as it keeps all past measurements and estimates in a list, and evaluate RMSE for every new measurement on the entire list.
 
