@@ -157,11 +157,15 @@ void UKF::Update(const MeasurementPackage<SensorType>& meas_package) {
   // create matrix for cross correlation Tc
   MatrixXd Tc = MatrixXd(n_x, meas_package.measurements().rows());
 
+  // Vectorize operations
+  MatrixXd DX = Xsig_pred.colwise() - ctrv;
+  MatrixXd DZ = Zsig.colwise() - z_pred;
+
   // calculate cross correlation matrix
   Tc.setZero();
   for (int i = 0; i < 2 * n_aug + 1; i++) {
-    VectorXd dx = Xsig_pred.col(i) - ctrv;
-    VectorXd dz = Zsig.col(i) - z_pred;
+    VectorXd dx = DX.col(i);
+    VectorXd dz = DZ.col(i);
     if (meas_package.sensor_type() == SensorType::RADAR) {
       // normalize bearing angle to [pi, -pi)
       dx(3) = NormalizeAngle(dx(3));
@@ -250,8 +254,13 @@ void UKF::ComputeMeanOfSigmaPoints(VectorXd& x, MatrixXd& P,
 
   // compute covariance matrix
   P.setZero();
+
+  // Vectorize operations
+  MatrixXd DX = sigma.colwise() - x;
+
+  // Compute the covariance matrix
   for (int i = 0; i < sigma.cols(); i++) {
-    VectorXd d = sigma.col(i) - x;
+    VectorXd d = DX.col(i);
     // Normalize angle
     if (sigma.rows() > 3) {
       d(3) = NormalizeAngle(d(3));
@@ -259,7 +268,7 @@ void UKF::ComputeMeanOfSigmaPoints(VectorXd& x, MatrixXd& P,
       d(1) = NormalizeAngle(d(1));
     }
 
-    MatrixXd D = (d.matrix() * d.matrix().transpose());
+    MatrixXd D = (d * d.transpose());
     D *= weights(i);
     P += D;
   }
@@ -272,28 +281,36 @@ void UKF::ComputeMeanOfSigmaPoints(VectorXd& x, MatrixXd& P,
 
 void UKF::PredictWithSigmaPoints(const double dt) {
   Xsig_pred = MatrixXd(n_x, 2 * n_aug + 1);
+  double dt2 = dt * dt / 2.0;
+
+  // Vectorize matrix/vector operations
+  VectorXd cos_psi = Xsig_aug.row(3).array().cos();
+  VectorXd sin_psi = Xsig_aug.row(3).array().sin();
+  VectorXd dt2_cos = cos_psi.array()*Xsig_aug.row(5).transpose().array()*dt2;
+  VectorXd dt2_sin = sin_psi.array()*Xsig_aug.row(5).transpose().array()*dt2;
+  VectorXd delta_psi = Xsig_aug.row(4) * dt;
+  VectorXd npsi = Xsig_aug.row(3) + delta_psi.transpose();
+  VectorXd npsi_cos = cos_psi.array() - npsi.array().cos();
+  VectorXd npsi_sin = npsi.array().sin() - sin_psi.array();
+
+  // Compute the perdiction for row 2, 3, and 4
+  Xsig_pred.row(2) = Xsig_aug.row(2).array() + Xsig_aug.row(5).array()*dt;
+  Xsig_pred.row(3) = Xsig_aug.row(3).array() + Xsig_aug.row(6).array()*dt2;
+  Xsig_pred.row(4) = Xsig_aug.row(4).array() + Xsig_aug.row(6).array()*dt;
+
+  // Compute the prediction of row 0, and 1
   for (int i = 0; i < 2 * n_aug + 1; i++) {
     VectorXd col = Xsig_aug.col(i);
-    if (fabs(col(4)) < EPSLION) { // avoid division by zero
+    VectorXd pred = Xsig_pred.col(i);
+    if (fabs(col(4)) < EPSLION) { // Avoid divide by 0
       double vkdt = col(2) * dt;
-      double dt2 = dt * dt / 2.0;
-      double cos_psi = cos(col(3));
-      double sin_psi = sin(col(3));
-      Xsig_pred.col(i) << col(0) + vkdt * cos_psi + dt2 * cos_psi * col(5),
-          col(1) + vkdt * sin_psi + dt2 * sin_psi * col(5),
-          col(2) + dt * col(5), col(3) + dt2 * col(6), col(4) + dt * col(6);
-    } else {
+      Xsig_pred.col(i)(0) = col(0) + vkdt*cos_psi(i) + dt2_cos(i);
+      Xsig_pred.col(i)(1) = col(1) + vkdt*sin_psi(i) + dt2_sin(i);
+    } else { 
       double c1 = col(2) / col(4);
-      double delta_psi = col(4) * dt;
-      double npsi = col(3) + delta_psi;
-      double dt2 = dt * dt / 2.0;
-      double cos_psi = cos(col(3));
-      double sin_psi = sin(col(3));
-      Xsig_pred.col(i) << col(0) + c1 * (sin(npsi) - sin_psi) +
-                              dt2 * cos_psi * col(5),
-          col(1) + c1 * (-cos(npsi) + cos_psi) + dt2 * sin_psi * col(5),
-          col(2) + dt * col(5), col(3) + delta_psi + dt2 * col(6),
-          col(4) + dt * col(6);
+      Xsig_pred.col(i)(0) = col(0) + c1*npsi_sin(i) + dt2_cos(i);
+      Xsig_pred.col(i)(1) = col(1) + c1*npsi_cos(i) + dt2_sin(i);
+      Xsig_pred.col(i)(3) += delta_psi(i); // add delta_psi to row 3
     }
   }
 

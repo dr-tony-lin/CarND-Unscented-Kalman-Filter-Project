@@ -1,6 +1,5 @@
 #ifndef FILTER_UTILS_H_
 #define FILTER_UTILS_H_
-//#define VERBOSE_OUT
 #include "Eigen/Dense"
 
 using Eigen::MatrixXd;

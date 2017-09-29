@@ -1,8 +1,18 @@
 project(UnscentedKF)
 
+# To check gcc support for AVX/SSE, run the following:
+# gcc -mavx2 -dM -E - < /dev/null | egrep "SSE|AVX" | sort
+# or, for avx-512:
+# gcc -march=knl -dM -E - < /dev/null | egrep "SSE|AVX" | sort
 cmake_minimum_required (VERSION 3.5)
 
 add_definitions(-std=c++11)
+
+if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU"))
+  add_compile_options(-g -mavx2 -msse4.1 -mfma4)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+	add_compile_options(/arch:AVX2)
+endif()
 
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")

@@ -3,7 +3,6 @@
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
 using Eigen::ArrayXd;
-using std::vector;
 using namespace utils;
 
 VectorXd utils::RadarToPV(const VectorXd &radar) {
