@@ -79,7 +79,7 @@ The src folder contains three folders for the source files:
 . sensor: contains source code for defining sensor measurement.
 
 ##### File names
-In this project, I made a class to have its own .h, and .cpp files. More specifically, a class source file contains exactly one class, and has the same name as the class it contains. On the other hand, 
+In this project, I made a class to have its own .h, and .cpp files. More specifically, a class source file contains exactly one class, and has the same name as the class it contains.
 
 #### The libs folder
 The libs folder contains Eigen and json.hpp required by the program.

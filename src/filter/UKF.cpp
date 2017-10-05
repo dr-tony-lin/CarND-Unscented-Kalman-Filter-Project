@@ -56,7 +56,7 @@ UKF::UKF() {
   std_radrd = 0.3;
 
   // Sigma point spreading parameter
-  lambda = 3. - n_aug;
+  lambda = 3 - n_aug;
 
   // predicted sigma points matrix
   Xsig_pred = MatrixXd(n_x, 2 * n_aug + 1);
