@@ -1,4 +1,4 @@
-# Extended Kalman Filter Project
+# Unscented Kalman Filter Project
 
 [video1]: ./video1.mp4
 [image1]: ./nis-05-065.png
